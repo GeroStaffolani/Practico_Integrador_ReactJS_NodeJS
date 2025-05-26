@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Link } from 'react-router-dom';
 import ExportarPdf from './ExportarPdf';
+import "../index.css";
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
@@ -16,7 +17,8 @@ const Productos = () => {
 
   useEffect(fetchData, []);
 
-  const handleSubmit = () => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
     if (editId) {
       axios.put(`http://localhost:3000/productos/${editId}`, form).then(fetchData);
     } else {
@@ -31,6 +33,11 @@ const Productos = () => {
     setEditId(p.id);
   };
 
+  const handleCancel = () => {
+    setForm({ nombre: '', precio: '' });
+    setEditId(null);
+  };
+
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.text("Listado de Productos", 20, 10);
@@ -42,35 +49,132 @@ const Productos = () => {
   };
 
   return (
-    <div>
-      <h2>Productos</h2>
-      <div className="mb-3">
-        <input className="form-control mb-2" placeholder="Nombre" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
-        <input className="form-control mb-2" placeholder="Precio" value={form.precio} onChange={e => setForm({ ...form, precio: e.target.value })} />
-        <button className="btn btn-primary" onClick={handleSubmit}>
-          {editId ? 'Actualizar' : 'Crear'}
-        </button>
+    <div className="productos-container">
+      {/* Header */}
+      <div className="productos-header">
+        <h2>Gestión de Productos</h2>
       </div>
-      <table className="table table-bordered">
-        <thead><tr><th>Nombre</th><th>Precio</th><th>Acciones</th></tr></thead>
-        <tbody>
-          {productos.map(p => (
-            <tr key={p.id}>
-              <td>{p.nombre}</td>
-              <td>{p.precio}</td>
-              <td>
-                <button className="btn btn-warning btn-sm" onClick={() => handleEdit(p)}>Editar</button>
-                <button className="btn btn-danger btn-sm ml-2" onClick={() => axios.delete(`http://localhost:3000/productos/${p.id}`).then(fetchData)}>Eliminar</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-            <button className="btn btn-secondary mt-3" onClick={exportPDF}>Exportar PDF</button>
-      <Link to="/" className="btn btn-outline-primary mt-3 ml-2">
-        Inicio
-      </Link>
 
+      {/* Formulario */}
+      <div className="productos-form-section">
+        <form onSubmit={handleSubmit} className="productos-form">
+          <div className="form-title">
+            <h3>{editId ? 'Editar Producto' : 'Nuevo Producto'}</h3>
+          </div>
+          
+          <div className="form-inputs">
+            <div className="input-group">
+              <label htmlFor="nombre">Nombre del Producto</label>
+              <input 
+                id="nombre"
+                type="text"
+                className="form-input" 
+                placeholder="Producto" 
+                value={form.nombre} 
+                onChange={e => setForm({ ...form, nombre: e.target.value })}
+                required
+              />
+            </div>
+            
+            <div className="input-group">
+              <label htmlFor="precio">Precio</label>
+              <input 
+                id="precio"
+                type="number"
+                step="0.01"
+                className="form-input" 
+                placeholder="Precio" 
+                value={form.precio} 
+                onChange={e => setForm({ ...form, precio: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-buttons">
+            <button type="submit" className="btn-crear">
+              {editId ? 'Actualizar' : 'Crear Producto'}
+            </button>
+            {editId && (
+              <button type="button" className="btn-cancel" onClick={handleCancel}>
+                Cancelar
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Tabla de productos */}
+      <div className="productos-table-section">
+        <div className="table-header">
+          <h3>Lista de Productos ({productos.length})</h3>
+        </div>
+        
+        <div className="table-container">
+          <table className="table table-bordered productos-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {productos.length > 0 ? (
+                productos.map(p => (
+                  <tr key={p.id} className={editId === p.id ? 'editing-row' : ''}>
+                    <td>{p.nombre}</td>
+                    <td>${parseFloat(p.precio).toFixed(2)}</td>
+                    <td>
+                      <div className="action-buttons">
+                        <button 
+                          className="btn btn-warning btn-sm" 
+                          onClick={() => handleEdit(p)}
+                          disabled={editId && editId !== p.id}
+                        >
+                          Editar
+                        </button>
+                        <button 
+                          className="btn btn-danger btn-sm" 
+                          onClick={() => axios.delete(`http://localhost:3000/productos/${p.id}`).then(fetchData)}
+                          disabled={editId}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="3" className="no-products">
+                    No hay productos registrados
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Botones de acción separados */}
+      <div className="productos-actions">
+        <div className="export-section">
+          <button 
+            className="btn-export" 
+            onClick={exportPDF}
+            disabled={productos.length === 0}
+          >
+            Exportar PDF
+          </button>
+        </div>
+        
+        <div className="navigation-section">
+          <Link to="/" className="btn-home">
+             Volver al Inicio
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };
